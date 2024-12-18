@@ -1,0 +1,46 @@
+steps:
+  # clone the git repository
+  - name: "gcr.io/cloud-builders/git"
+    args:
+      ["clone", "https://github.com/sungchun12/serverless_data_pipeline_gcp"]
+
+    # Deploy cloud function with pub/sub trigger from clone directory
+  - name: "gcr.io/cloud-builders/gcloud"
+    args:
+      [
+        "functions",
+        "deploy",
+        "demo_function",
+        "--entry-point",
+        "handler",
+        "--runtime",
+        "python37",
+        "--trigger-topic",
+        "demo_topic",
+      ]
+    dir: "serverless_data_pipeline_gcp/src"
+
+    # Deploy cloud scheduler job which publishes a message to Pub/Sub every 5 minutes
+    # exits if it already exists
+  - name: "gcr.io/cloud-builders/gcloud"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        gcloud beta scheduler jobs create pubsub schedule_function \
+            --schedule "*/5 * * * *" \
+            --topic demo_topic \
+            --message-body '{"Can you see this? With love, cloud scheduler"}' \
+            --time-zone 'America/Chicago' || exit 0
+
+    # Manually run the cloud scheduler job
+  - name: "gcr.io/cloud-builders/gcloud"
+    args: ["beta", "scheduler", "jobs", "run", "schedule_function"]
+
+    # Check logs to see how function performed.
+  - name: "gcr.io/cloud-builders/gcloud"
+    args: ["functions", "logs", "read", "--limit", "50"]
+
+# set logs bucket location for builds
+# set this to whatever bucket you want or remove entirely and cloudbuild will create a default bucket
+logsBucket: "gs://cloud_function_build_demo"

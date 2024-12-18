@@ -1,0 +1,17 @@
+#exclude files and directories in top directory
+*
+
+#include the src directory
+!/src
+
+#include the src/lib directory 
+!/src/lib
+
+#include gitignore
+!.gitignore
+
+#include README
+!README.md
+
+#include cloudbuild config
+!cloudbuild.yaml
